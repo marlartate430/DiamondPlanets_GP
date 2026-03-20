@@ -1,8 +1,29 @@
+# --- Python ---
 __pycache__/
-*.pyc
-*.db
-.DS_Store
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
 env/
-*.csv
-!diamantes.csv
+.env
+*.egg-info/
+dist/
+build/
+
+# --- Base de Datos (SQLite) ---
+*.db
+*.sqlite
+*.sqlite3
+data/*.db  # Ignorar la BD local, pero no el CSV si es público
+
+# --- Sistema Operativo / Editores ---
+.DS_Store
+.Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Logs ---
+*.log
