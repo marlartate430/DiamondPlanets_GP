@@ -1,0 +1,15 @@
+# ============================================
+# DiamondPlanets_GP - Backend Dependencies
+# ============================================
+
+# Framework web para la API REST
+Flask==3.0.0
+
+# Librería para tokens JWT (autenticación)
+PyJWT==2.8.0
+
+# ============================================
+# Notas:
+# - sqlite3, hashlib, datetime, os: incluidos en Python stdlib
+# - Para instalar: pip install -r requirements.txt
+# ============================================
