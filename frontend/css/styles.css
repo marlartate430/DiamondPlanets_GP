@@ -183,3 +183,41 @@ main > * { animation: fadeIn 0.4s ease; }
     width: 100%; padding: 0.7rem; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95rem;
 }
 .admin-form-inline textarea { resize: vertical; }
+/* === Botón de favoritos: estados claros y cursor correcto === */
+.btn-fav {
+    margin-top: 0.5rem;
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;  /* ← Cursor normal cuando se puede clicar */
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+/* Hover normal (solo si NO es favorito) */
+.btn-fav:not(.is-favorite):not(:disabled):hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* === ESTADO GUARDADO: no clickeable, cursor not-allowed === */
+.btn-fav.is-favorite,
+.btn-fav:disabled {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    cursor: not-allowed;  /* ← Cursor de "prohibido", nunca "cargando" */
+    pointer-events: none; /* ← Bloquea TODOS los eventos: click, hover, focus */
+    opacity: 1;           /* ← Sin transparencia para que se vea bien */
+}
+
+/* Asegurar que no haya efectos hover en estado guardado */
+.btn-fav.is-favorite:hover,
+.btn-fav:disabled:hover {
+    background: var(--accent);
+    color: white;
+    transform: none;
+}

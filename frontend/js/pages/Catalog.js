@@ -1,18 +1,34 @@
+/**
+ * Renderiza el catálogo de joyas con favoritos persistentes y botones no interactivos cuando están guardados
+ */
 async function renderCatalog(container) {
     container.innerHTML = '<p class="loading">Cargando catálogo...</p>';
-    const isLoggedIn = !!localStorage.getItem('token');
+
+    const token = localStorage.getItem('token');
     const role = localStorage.getItem('role');
 
     try {
+        // 1. Cargar joyas del catálogo
         const joyas = await API.getProducts();
 
-        // Header + Botón solo para admin
+        // 2. Si está logueado, cargar sus favoritos para marcar los que ya tiene
+        let favoritosIds = [];
+        if (token) {
+            try {
+                const favoritos = await API.getMyFavorites();
+                favoritosIds = favoritos.map(f => f.id);
+            } catch (e) {
+                console.warn('⚠️ No se pudieron cargar favoritos:', e.message);
+            }
+        }
+
+        // 3. Header + Botón solo para admin
         let headerHTML = `<h2>💎 Catálogo de Joyas</h2>`;
         if (role === 'admin') {
             headerHTML += `<button id="btn-toggle-form" class="btn-add-joya">➕ Añadir Nueva Joya</button>`;
         }
 
-        // Formulario oculto (solo admin)
+        // 4. Formulario inline para admin (oculto por defecto)
         const formHTML = role === 'admin' ? `
             <div id="admin-form-container" style="display:none; margin: 1.5rem 0;">
                 <div class="admin-form-inline">
@@ -42,8 +58,9 @@ async function renderCatalog(container) {
             </div>
         ` : '';
 
+        // 5. Renderizar grid de joyas
         if (!joyas || joyas.length === 0) {
-            container.innerHTML = `${headerHTML}${formHTML}<p>No hay joyas disponibles.</p>`;
+            container.innerHTML = `${headerHTML}${formHTML}<p class="empty">No hay joyas disponibles en este momento.</p>`;
             setupCatalogEvents(container);
             return;
         }
@@ -52,50 +69,75 @@ async function renderCatalog(container) {
             ${headerHTML}
             ${formHTML}
             <div class="products-grid">
-                ${joyas.map(j => `
-                    <div class="product-card">
-                        <img src="${j.imagen_url}" alt="${j.nombre}" onerror="this.onerror=null; this.src='/img/default.jpg'">
-                        <div class="product-info">
-                            <h3 onclick="navigate('/jewelry/${j.id}')" style="cursor:pointer">${j.nombre}</h3>
-                            <p class="tipo">${j.tipo} • ${j.material}</p>
-                            <span class="price">${j.precio.toFixed(2)} €</span>
-                            ${isLoggedIn ? `
-                                <button class="btn-fav" onclick="toggleFavorite(${j.id}, this)">❤️ Añadir a favoritos</button>
-                            ` : `
-                                <p class="auth-hint">🔐 <a href="#" onclick="navigate('/login'); return false;">Inicia sesión</a> para guardar favoritos</p>
-                            `}
+                ${joyas.map(j => {
+                    const esFavorito = favoritosIds.includes(j.id);
+                    return `
+                        <div class="product-card">
+                            <img src="${j.imagen_url}" alt="${j.nombre}" onerror="this.onerror=null; this.src='/img/default.jpg'">
+                            <div class="product-info">
+                                <h3 onclick="navigate('/jewelry/${j.id}')" style="cursor:pointer">${j.nombre}</h3>
+                                <p class="tipo">${j.tipo} • ${j.material}</p>
+                                <span class="price">${j.precio.toFixed(2)} €</span>
+                                ${token ? `
+                                    <button class="btn-fav ${esFavorito ? 'is-favorite' : ''}" 
+                                            data-joya-id="${j.id}"
+                                            ${esFavorito ? 'disabled' : ''}
+                                            onclick="${esFavorito ? '' : `toggleFavorite(${j.id}, this)`}">
+                                        ${esFavorito ? '✅ Guardado' : '❤️ Añadir a favoritos'}
+                                    </button>
+                                ` : `
+                                    <p class="auth-hint">🔐 <a href="#" onclick="navigate('/login'); return false;">Inicia sesión</a> para guardar favoritos</p>
+                                `}
+                            </div>
                         </div>
-                    </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         `;
+
         setupCatalogEvents(container);
+
     } catch (e) {
-        container.innerHTML = `<h2>⚠️ Error</h2><p>${e.message}</p><button onclick="navigate('/dashboard')">Volver</button>`;
+        console.error('❌ Error al cargar catálogo:', e);
+        container.innerHTML = `<h2>⚠️ Error</h2><p>${e.message}</p><button onclick="navigate('/dashboard')" class="btn-secondary">Volver</button>`;
     }
 }
 
+/**
+ * Configura eventos del formulario de admin
+ */
 function setupCatalogEvents(container) {
-    // Toggle formulario
     const toggleBtn = document.getElementById('btn-toggle-form');
     const formContainer = document.getElementById('admin-form-container');
+
     if (toggleBtn && formContainer) {
-        toggleBtn.onclick = () => formContainer.style.display = formContainer.style.display === 'none' ? 'block' : 'none';
+        toggleBtn.onclick = () => {
+            const isVisible = formContainer.style.display !== 'none';
+            formContainer.style.display = isVisible ? 'none' : 'block';
+            toggleBtn.textContent = isVisible ? '➕ Añadir Nueva Joya' : '✖️ Ocultar formulario';
+        };
     }
 
-    // Cancelar
     const cancelBtn = document.getElementById('btn-cancel-form');
     const form = document.getElementById('form-joya');
+
     if (cancelBtn && form) {
-        cancelBtn.onclick = () => { formContainer.style.display = 'none'; form.reset(); };
+        cancelBtn.onclick = () => {
+            formContainer.style.display = 'none';
+            form.reset();
+            if (toggleBtn) toggleBtn.textContent = '➕ Añadir Nueva Joya';
+        };
     }
 
-    // Guardar
     if (form) {
         form.onsubmit = async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
-            btn.disabled = true; btn.textContent = 'Guardando...';
+            const originalText = btn.textContent;
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Guardando...';
+
             try {
                 await API.createProduct({
                     nombre: document.getElementById('nombre').value.trim(),
@@ -106,28 +148,59 @@ function setupCatalogEvents(container) {
                     imagen_url: document.getElementById('imagen_url').value.trim() || '',
                     descripcion: document.getElementById('descripcion').value.trim()
                 });
+
                 alert('✅ Joya creada exitosamente');
                 form.reset();
                 formContainer.style.display = 'none';
-                renderCatalog(container); // Recargar catálogo
+                if (toggleBtn) toggleBtn.textContent = '➕ Añadir Nueva Joya';
+                renderCatalog(container);
+
             } catch (err) {
                 alert('❌ Error: ' + err.message);
             } finally {
-                btn.disabled = false; btn.textContent = '💾 Guardar Joya';
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
         };
     }
 }
 
-// Función global para favoritos
+/**
+ * Toggle favorito: SOLO funciona si la joya NO está ya en favoritos
+ * Si ya está guardada, el botón está disabled y esta función ni se ejecuta
+ */
 async function toggleFavorite(joyaId, btn) {
-    if (!localStorage.getItem('token')) { navigate('/login'); return; }
+    const token = localStorage.getItem('token');
+    if (!token) { navigate('/login'); return; }
+
+    // Protección extra: si el botón ya tiene la clase is-favorite, no hacer nada
+    if (btn.classList.contains('is-favorite')) {
+        return;
+    }
+
+    const originalText = btn.textContent;
+
     try {
-        btn.disabled = true; btn.textContent = '⏳ Guardando...';
+        // Feedback visual mínimo (sin deshabilitar el botón para no afectar cursor)
+        btn.textContent = '⏳';
+        btn.style.opacity = '0.7';
+
         await API.addToFavorites(joyaId);
-        btn.textContent = '✅ Guardado'; btn.style.background = 'var(--accent)'; btn.style.color = 'white';
+
+        // Estado final: marcado como favorito, no clickeable
+        btn.textContent = '✅ Guardado';
+        btn.classList.add('is-favorite');
+        btn.disabled = true;  // ← Esto hace que el cursor sea "not-allowed" y no se pueda clicar
+        btn.onclick = null;   // ← Eliminar cualquier evento click residual
+
     } catch (err) {
+        // Revertir en caso de error
+        btn.textContent = originalText;
+        btn.style.opacity = '1';
         alert('❌ Error: ' + err.message);
-        btn.textContent = '❤️ Añadir a favoritos'; btn.disabled = false;
     }
 }
+
+// Hacer disponible globalmente
+window.toggleFavorite = toggleFavorite;
+window.renderCatalog = renderCatalog;
