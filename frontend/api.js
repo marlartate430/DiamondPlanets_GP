@@ -38,5 +38,7 @@ window.API = {
     createProduct: (data) => apiRequest('/items', 'POST', data, true),
     addToFavorites: (joyaId) => apiRequest('/user/favorites', 'POST', { joya_id: joyaId }, true),
     getMyFavorites: () => apiRequest('/user/favorites', 'GET', null, true),
-    removeFavorite: (joyaId) => apiRequest(`/user/favorites/${joyaId}`, 'DELETE', null, true)
+    removeFavorite: (joyaId) => apiRequest(`/user/favorites/${joyaId}`, 'DELETE', null, true),
+    deleteProduct: (joyaId) => apiRequest(`/items/${joyaId}`, 'DELETE', null, true),
+    updateProduct: (joyaId, data) => apiRequest(`/items/${joyaId}`, 'PUT', data, true)
 };

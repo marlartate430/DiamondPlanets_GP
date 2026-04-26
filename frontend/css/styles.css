@@ -221,3 +221,57 @@ main > * { animation: fadeIn 0.4s ease; }
     color: white;
     transform: none;
 }
+/* 🗑️ BOTÓN ELIMINAR (catálogo y detalle) */
+.btn-delete-joya {
+    margin-top: 0.4rem;
+    background: transparent;
+    border: 1px solid #e74c3c;
+    color: #e74c3c;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: var(--transition);
+    width: 100%;
+}
+.btn-delete-joya:hover:not(:disabled) {
+    background: #e74c3c;
+    color: white;
+}
+.btn-delete-joya:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ✏️ BOTÓN EDITAR (detalle) */
+.btn-edit-joya {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.5rem 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+.btn-edit-joya:hover {
+    background: var(--accent);
+    color: white;
+}
+
+/* Barra de acciones admin en la vista de detalle */
+.detail-admin-actions {
+    display: flex;
+    gap: 0.8rem;
+    margin-bottom: 1.2rem;
+    flex-wrap: wrap;
+}
+
+/* Versión del botón eliminar en la vista de detalle (tamaño más grande) */
+.btn-delete-detail {
+    width: auto;
+    padding: 0.5rem 1.1rem;
+    font-size: 0.95rem;
+}

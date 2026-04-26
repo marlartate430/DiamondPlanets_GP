@@ -1,5 +1,6 @@
 /**
- * Renderiza el catálogo de joyas con favoritos persistentes y botones no interactivos cuando están guardados
+ * Renderiza el catálogo de joyas con favoritos persistentes y botones no interactivos cuando están guardados.
+ * Admin: puede añadir joyas (formulario inline) y eliminar joyas directamente desde la card.
  */
 async function renderCatalog(container) {
     container.innerHTML = '<p class="loading">Cargando catálogo...</p>';
@@ -72,14 +73,14 @@ async function renderCatalog(container) {
                 ${joyas.map(j => {
                     const esFavorito = favoritosIds.includes(j.id);
                     return `
-                        <div class="product-card">
+                        <div class="product-card" data-joya-id="${j.id}" onclick="handleCardClick(event, ${j.id})">
                             <img src="${j.imagen_url}" alt="${j.nombre}" onerror="this.onerror=null; this.src='/img/default.jpg'">
                             <div class="product-info">
-                                <h3 onclick="navigate('/jewelry/${j.id}')" style="cursor:pointer">${j.nombre}</h3>
+                                <h3>${j.nombre}</h3>
                                 <p class="tipo">${j.tipo} • ${j.material}</p>
                                 <span class="price">${j.precio.toFixed(2)} €</span>
                                 ${token ? `
-                                    <button class="btn-fav ${esFavorito ? 'is-favorite' : ''}" 
+                                    <button class="btn-fav ${esFavorito ? 'is-favorite' : ''}"
                                             data-joya-id="${j.id}"
                                             ${esFavorito ? 'disabled' : ''}
                                             onclick="${esFavorito ? '' : `toggleFavorite(${j.id}, this)`}">
@@ -88,6 +89,11 @@ async function renderCatalog(container) {
                                 ` : `
                                     <p class="auth-hint">🔐 <a href="#" onclick="navigate('/login'); return false;">Inicia sesión</a> para guardar favoritos</p>
                                 `}
+                                ${role === 'admin' ? `
+                                    <button class="btn-delete-joya" data-joya-id="${j.id}" onclick="deleteJoyaCatalog(${j.id}, this)">
+                                        🗑️ Eliminar
+                                    </button>
+                                ` : ''}
                             </div>
                         </div>
                     `;
@@ -166,8 +172,41 @@ function setupCatalogEvents(container) {
 }
 
 /**
- * Toggle favorito: SOLO funciona si la joya NO está ya en favoritos
- * Si ya está guardada, el botón está disabled y esta función ni se ejecuta
+ * Elimina una joya desde la card del catálogo (solo admin).
+ * Pide confirmación antes de proceder.
+ */
+async function deleteJoyaCatalog(joyaId, btn) {
+    const token = localStorage.getItem('token');
+    if (!token) { navigate('/login'); return; }
+
+    const card = btn.closest('.product-card');
+    const nombre = card ? card.querySelector('h3').textContent : `joya #${joyaId}`;
+
+    if (!confirm(`¿Seguro que quieres eliminar "${nombre}"?\nEsta acción no se puede deshacer.`)) return;
+
+    btn.disabled = true;
+    btn.textContent = '⏳ Eliminando...';
+
+    try {
+        await API.deleteProduct(joyaId);
+
+        // Animación de salida y eliminación del DOM
+        if (card) {
+            card.style.transition = 'opacity 0.3s, transform 0.3s';
+            card.style.opacity = '0';
+            card.style.transform = 'scale(0.9)';
+            setTimeout(() => card.remove(), 300);
+        }
+    } catch (err) {
+        alert('❌ Error al eliminar: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '🗑️ Eliminar';
+    }
+}
+
+/**
+ * Toggle favorito: SOLO funciona si la joya NO está ya en favoritos.
+ * Si ya está guardada, el botón está disabled y esta función ni se ejecuta.
  */
 async function toggleFavorite(joyaId, btn) {
     const token = localStorage.getItem('token');
@@ -181,7 +220,6 @@ async function toggleFavorite(joyaId, btn) {
     const originalText = btn.textContent;
 
     try {
-        // Feedback visual mínimo (sin deshabilitar el botón para no afectar cursor)
         btn.textContent = '⏳';
         btn.style.opacity = '0.7';
 
@@ -190,17 +228,27 @@ async function toggleFavorite(joyaId, btn) {
         // Estado final: marcado como favorito, no clickeable
         btn.textContent = '✅ Guardado';
         btn.classList.add('is-favorite');
-        btn.disabled = true;  // ← Esto hace que el cursor sea "not-allowed" y no se pueda clicar
-        btn.onclick = null;   // ← Eliminar cualquier evento click residual
+        btn.disabled = true;
+        btn.onclick = null;
 
     } catch (err) {
-        // Revertir en caso de error
         btn.textContent = originalText;
         btn.style.opacity = '1';
         alert('❌ Error: ' + err.message);
     }
 }
 
+/**
+ * Navega al detalle de la joya al clicar en la card,
+ * ignorando clics sobre botones o enlaces internos.
+ */
+function handleCardClick(event, joyaId) {
+    if (event.target.closest('button, a')) return;
+    navigate('/jewelry/' + joyaId);
+}
+
 // Hacer disponible globalmente
 window.toggleFavorite = toggleFavorite;
 window.renderCatalog = renderCatalog;
+window.deleteJoyaCatalog = deleteJoyaCatalog;
+window.handleCardClick = handleCardClick;

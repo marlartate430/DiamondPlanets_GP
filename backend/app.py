@@ -233,6 +233,68 @@ def create_item(user):
         cur.close(); conn.close()
 
 
+@app.route('/api/items/<int:item_id>', methods=['PUT'])
+@admin_required
+def update_item(user, item_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Sin datos'}), 400
+    conn = get_db()
+    try:
+        item = conn.execute('SELECT * FROM joyas WHERE id = ?', (item_id,)).fetchone()
+        if not item:
+            return jsonify({'message': 'Joya no encontrada'}), 404
+        conn.execute(
+            '''UPDATE joyas SET
+                nombre    = ?,
+                descripcion = ?,
+                precio    = ?,
+                imagen_url  = ?,
+                material  = ?,
+                tipo      = ?,
+                stock     = ?
+               WHERE id = ?''',
+            (
+                data.get('nombre', item['nombre']),
+                data.get('descripcion', item['descripcion']),
+                data.get('precio', item['precio']),
+                data.get('imagen_url', item['imagen_url']),
+                data.get('material', item['material']),
+                data.get('tipo', item['tipo']),
+                data.get('stock', item['stock']),
+                item_id
+            )
+        )
+        conn.commit()
+        updated = conn.execute('SELECT * FROM joyas WHERE id = ?', (item_id,)).fetchone()
+        return jsonify(dict(updated)), 200
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
+@app.route('/api/items/<int:item_id>', methods=['DELETE'])
+@admin_required
+def delete_item(user, item_id):
+    conn = get_db()
+    try:
+        item = conn.execute('SELECT id FROM joyas WHERE id = ?', (item_id,)).fetchone()
+        if not item:
+            return jsonify({'message': 'Joya no encontrada'}), 404
+        # Eliminar también los favoritos relacionados para mantener integridad
+        conn.execute('DELETE FROM favoritos WHERE joya_id = ?', (item_id,))
+        conn.execute('DELETE FROM joyas WHERE id = ?', (item_id,))
+        conn.commit()
+        return jsonify({'message': 'Joya eliminada correctamente'}), 200
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
+
+
 @app.route('/api/user/favorites', methods=['POST'])
 @token_required
 def add_favorite(user):
