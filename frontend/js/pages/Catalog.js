@@ -11,6 +11,17 @@ async function renderCatalog(container) {
     try {
         // 1. Cargar joyas del catálogo
         const joyas = await API.getProducts();
+        const params = new URLSearchParams(window.location.search);
+        const search = (params.get('q') || '').toLowerCase();
+        const tipoFiltro = (params.get('tipo') || '').toLowerCase();
+        const materialFiltro = (params.get('material') || '').toLowerCase();
+        const joyasFiltradas = joyas.filter(j => {
+            const texto = `${j.nombre} ${j.descripcion || ''} ${j.tipo} ${j.material}`.toLowerCase();
+            const coincideTexto = !search || texto.includes(search);
+            const coincideTipo = !tipoFiltro || j.tipo.toLowerCase() === tipoFiltro;
+            const coincideMaterial = !materialFiltro || j.material.toLowerCase().includes(materialFiltro);
+            return coincideTexto && coincideTipo && coincideMaterial;
+        });
 
         // 2. Si está logueado, cargar sus favoritos para marcar los que ya tiene
         let favoritosIds = [];
@@ -60,8 +71,16 @@ async function renderCatalog(container) {
         ` : '';
 
         // 5. Renderizar grid de joyas
-        if (!joyas || joyas.length === 0) {
-            container.innerHTML = `${headerHTML}${formHTML}<p class="empty">No hay joyas disponibles en este momento.</p>`;
+        if (!joyasFiltradas || joyasFiltradas.length === 0) {
+            container.innerHTML = `
+                ${headerHTML}
+                ${formHTML}
+                <div class="empty-state">
+                    <h3>No se encontraron joyas</h3>
+                    <p>Prueba con otra busqueda o limpia los filtros.</p>
+                    <button onclick="navigate('/catalog')" class="btn-primary" style="margin-top:1rem; width:auto;">Ver todo</button>
+                </div>
+            `;
             setupCatalogEvents(container);
             return;
         }
@@ -70,7 +89,7 @@ async function renderCatalog(container) {
             ${headerHTML}
             ${formHTML}
             <div class="products-grid">
-                ${joyas.map(j => {
+                ${joyasFiltradas.map(j => {
                     const esFavorito = favoritosIds.includes(j.id);
                     return `
                         <div class="product-card" data-joya-id="${j.id}" onclick="handleCardClick(event, ${j.id})">

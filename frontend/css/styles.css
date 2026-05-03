@@ -44,6 +44,27 @@ body {
 .nav-links a:hover { color: var(--accent); }
 .btn-logout { background: transparent; border: 1px solid #e74c3c; color: #e74c3c; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; transition: var(--transition); }
 .btn-logout:hover { background: #e74c3c; color: white; }
+.nav-search { display: flex; gap: 0.5rem; align-items: center; flex: 1; max-width: 560px; margin: 0 1rem; }
+.nav-search input,
+.nav-search select {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 0.9rem;
+}
+.nav-search input { min-width: 170px; flex: 1; }
+.btn-search {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.58rem 0.9rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+}
+.btn-search:hover { background: var(--accent-hover); }
 
 /* 📄 MAIN */
 main { flex: 1; padding: 2rem; max-width: 1200px; margin: 0 auto; width: 100%; }
@@ -107,8 +128,11 @@ main > * { animation: fadeIn 0.4s ease; }
 
 /* 📱 RESPONSIVE */
 @media (max-width: 768px) {
-  .navbar { padding: 1rem; }
-  .nav-links { gap: 1rem; }
+  .navbar { padding: 1rem; flex-wrap: wrap; gap: 0.8rem; }
+  .nav-search { order: 3; width: 100%; max-width: none; margin: 0; flex-wrap: wrap; }
+  .nav-search input { min-width: 100%; }
+  .nav-search select { flex: 1; min-width: 130px; }
+  .nav-links { gap: 1rem; flex-wrap: wrap; }
   main { padding: 1rem; }
   .detail-grid { grid-template-columns: 1fr; gap: 2rem; }
   .products-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.5rem; }
