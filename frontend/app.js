@@ -23,6 +23,7 @@ async function handleRoute() {
         case '/login': await renderLogin(app); break;
         case '/catalog': await renderCatalog(app); break;
         case '/favorites': await renderFavorites(app); break;
+        case '/profile': await renderProfile(app); break;
         case '/dashboard': case '/': await renderDashboard(app); break;
         default: app.innerHTML = '<h2>404 - Página no encontrada</h2>';
     }

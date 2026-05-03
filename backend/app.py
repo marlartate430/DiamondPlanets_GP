@@ -53,6 +53,15 @@ def init_db():
                      DEFAULT
                      CURRENT_TIMESTAMP
                  )''')
+    user_columns = [col['name'] for col in c.execute("PRAGMA table_info(usuarios)").fetchall()]
+    for column, definition in {
+        'nombre': 'TEXT DEFAULT ""',
+        'apellidos': 'TEXT DEFAULT ""',
+        'telefono': 'TEXT DEFAULT ""',
+        'direccion': 'TEXT DEFAULT ""'
+    }.items():
+        if column not in user_columns:
+            c.execute(f'ALTER TABLE usuarios ADD COLUMN {column} {definition}')
     c.execute('''CREATE TABLE IF NOT EXISTS joyas
                  (
                      id
@@ -209,6 +218,70 @@ def get_item_detail(item_id):
     item = conn.execute('SELECT * FROM joyas WHERE id = ?', (item_id,)).fetchone()
     conn.close()
     return jsonify(dict(item)) if item else (jsonify({'message': 'No encontrada'}), 404)
+
+
+@app.route('/api/user/profile', methods=['GET'])
+@token_required
+def get_profile(user):
+    conn = get_db()
+    profile = conn.execute(
+        '''SELECT id, nombre_usuario, nombre, apellidos, email, telefono, direccion, dinero, fecha_creacion
+           FROM usuarios
+           WHERE id = ?''',
+        (user['userId'],)
+    ).fetchone()
+    conn.close()
+    return jsonify(dict(profile)) if profile else (jsonify({'message': 'Usuario no encontrado'}), 404)
+
+
+@app.route('/api/user/profile', methods=['PUT'])
+@token_required
+def update_profile(user):
+    data = request.get_json()
+    if not data:
+        return jsonify({'message': 'Sin datos'}), 400
+
+    required = ['nombre_usuario', 'email']
+    if not all(data.get(k) for k in required):
+        return jsonify({'message': 'Usuario y email son obligatorios'}), 400
+
+    conn = get_db()
+    try:
+        conn.execute(
+            '''UPDATE usuarios SET
+                nombre_usuario = ?,
+                nombre = ?,
+                apellidos = ?,
+                email = ?,
+                telefono = ?,
+                direccion = ?
+               WHERE id = ?''',
+            (
+                data['nombre_usuario'].strip(),
+                data.get('nombre', '').strip(),
+                data.get('apellidos', '').strip(),
+                data['email'].strip(),
+                data.get('telefono', '').strip(),
+                data.get('direccion', '').strip(),
+                user['userId']
+            )
+        )
+        conn.commit()
+        updated = conn.execute(
+            '''SELECT id, nombre_usuario, nombre, apellidos, email, telefono, direccion, dinero, fecha_creacion
+               FROM usuarios
+               WHERE id = ?''',
+            (user['userId'],)
+        ).fetchone()
+        return jsonify(dict(updated)), 200
+    except sqlite3.IntegrityError:
+        conn.rollback()
+        return jsonify({'message': 'El usuario o email ya estan en uso'}), 409
+    except Exception as e:
+        conn.rollback()
+        return jsonify({'message': str(e)}), 500
+    finally:
+        conn.close()
 
 
 @app.route('/api/items', methods=['POST'])

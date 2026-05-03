@@ -32,6 +32,7 @@ function renderNavbar(container) {
                     <a href="#" onclick="navigate('/dashboard'); return false;">Inicio</a>
                     <a href="#" onclick="navigate('/catalog'); return false;">Catalogo</a>
                     <a href="#" onclick="navigate('/favorites'); return false;">Favoritos</a>
+                    <a href="#" onclick="navigate('/profile'); return false;">Perfil</a>
                     <button onclick="API.logout()" class="btn-logout">Cerrar sesion</button>
                 ` : `
                     <a href="#" onclick="navigate('/login'); return false;">Iniciar sesion / Registro</a>
